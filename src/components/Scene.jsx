@@ -2,6 +2,8 @@ import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { TextureLoader } from "three";
 import { useMemo, useRef } from "react";
 import TouchTexture from "../utils/TouchTexture";
+import vertexShader from "../shaders/vertexShader.glsl";
+import fragmentShader from "../shaders/fragmentShader.glsl";
 
 const HEIGHT = 6;
 const ASPECT_RATIO = 1808 / 2400;
@@ -13,7 +15,7 @@ function Plane() {
   const touchTexture = useMemo(() => new TouchTexture({ debugCanvas: false, size: 128 }), []);
 
   // Load image texture
-  const texture = useLoader(TextureLoader, "/image.jpeg"); // Đặt ảnh trong thư mục public
+  const texture = useLoader(TextureLoader, "/image.jpeg");
 
   const uniforms = useMemo(
     () => ({
@@ -45,42 +47,7 @@ function Plane() {
   return (
     <mesh ref={mesh} onPointerMove={handlePointerMove}>
       <planeGeometry args={[WIDTH, HEIGHT, 64, 64]} />
-      <shaderMaterial
-        ref={shader}
-        uniforms={uniforms}
-        vertexShader={`
-          varying vec2 vUv;
-          uniform float uTime;
-          uniform sampler2D uTouch;
-
-          void main() {
-            vUv = uv;
-            float touch = texture2D(uTouch, vUv).x;
-            vec3 newPosition = position;
-            float elevation = sin(newPosition.x * 2. - uTime) * 0.05;
-            elevation += sin(newPosition.y * 2. - uTime) * 0.05;
-            newPosition += elevation;
-            newPosition.z += touch;
-            vec4 modelPosition = modelMatrix * vec4(newPosition, 1.0);
-            vec4 viewPosition = viewMatrix * modelPosition;
-            vec4 projectedPosition = projectionMatrix * viewPosition;
-            gl_Position = projectedPosition;
-          }
-        `}
-        fragmentShader={`
-          varying vec2 vUv;
-          uniform sampler2D uTouch;
-          uniform sampler2D uTexture;
-
-          void main(){
-            float touch = texture2D(uTouch, vUv).r;
-            vec4 color = texture2D(uTexture, vUv); 
-            color.rgb *= 2.;
-            color.rgb *= touch + 0.5;
-            gl_FragColor = color;
-          }
-        `}
-      />
+      <shaderMaterial ref={shader} uniforms={uniforms} vertexShader={vertexShader} fragmentShader={fragmentShader} />
     </mesh>
   );
 }
